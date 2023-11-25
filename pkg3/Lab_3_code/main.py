@@ -41,25 +41,25 @@ class MainSolution():
     return ImageTk.PhotoImage(img)
     
   def segmentation(self):
-    dist = ndi.distance_transform_edt(self.trsh1)
-    local_max = peak_local_max(dist, min_distance=20, labels=self.trsh1)
-    markers = ndi.label(local_max, structure=np.ones((3, 3)))[0]
-    labels = watershed(-dist, markers, self.trsh1)
-    for label in np.unique(labels):
-      if label == 0:
-        continue
-      mask = np.zeros(self.imgray.shape, dtype="uint8")
-      mask[labels == label] = 255
-      contours = cv.findContours(mask.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-      contours = imutils.grab_contours(contours)
-      c = max(contours, key=cv.contourArea)
+    ret, thresh1 = cv.threshold(self.imgray, 0, 255, cv.THRESH_BINARY_INV | cv.THRESH_OTSU)
 
-      ((x, y), r) = cv.minEnclosingCircle(c)
-      cv.circle(self.image, (int(x), int(y)), int(r), (255, 0, 0), 7)
+    kernel = np.ones((3, 3), np.uint8)
+    sure_bg = cv.dilate(thresh1, kernel, iterations=3)
+    dist_transform = cv.distanceTransform(thresh1, cv.DIST_L2, 5)
+    ret, sure_fg = cv.threshold(dist_transform, 0.7 * dist_transform.max(), 255, 0)
+    sure_fg = np.uint8(sure_fg)
+    unknown = cv.subtract(sure_bg, sure_fg)
 
-    self.image = Image.fromarray(self.image)
-    self.image = self.image.resize((300, 300))
-    return ImageTk.PhotoImage(self.image)
+    ret, markers = cv.connectedComponents(sure_fg)
+    markers += 1
+    markers[unknown == 255] = 0
+
+    markers = cv.watershed(self.image, markers)
+    self.image[markers == -1] = [255, 0, 0]
+
+    result_image = Image.fromarray(self.image)
+    result_image = result_image.resize((300, 300))
+    return ImageTk.PhotoImage(result_image)
 
 root = Tk()
 ms = MainSolution()
@@ -90,4 +90,5 @@ img4 = ms.segmentation()
 lbl4 = ttk.Label(image=img4)
 lbl4.image = img4
 lbl4.place(x=370, y=390, width=300, height=300)
+
 root.mainloop()

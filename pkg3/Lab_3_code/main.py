@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 as cv
 import imutils
+from tkinter import filedialog
 from tkinter import ttk
 from tkinter import *
 from scipy import ndimage as ndi
@@ -12,13 +13,15 @@ from copy import deepcopy
 
 class MainSolution():
   def __init__(self):
-    self.image = cv.imread("kitties.jpg")
+    path = filedialog.askopenfilename(filetypes=(("PNG", "*.png"), ("JPG", "*.jpg"), ("GIF", "*.gif"), ("TIF", "*.tif"), ("BMP", "*.bmp"), ("PCX", "*.pcx")))
+    self.image = cv.imread(path)
     self.imgray = None
     self.trsh1 = None
     self.trsh2 = None
 
   def filt(self):
-    self.imgray = cv.cvtColor(cv.pyrMeanShiftFiltering(self.image, 15, 50), cv.COLOR_BGR2GRAY)
+    filtered_image = cv.pyrMeanShiftFiltering(self.image, 15, 50)
+    self.imgray = cv.cvtColor(filtered_image, cv.COLOR_BGR2GRAY)
     img = Image.fromarray(self.imgray)
     img = img.resize((300, 300))
     return ImageTk.PhotoImage(img)
@@ -39,9 +42,9 @@ class MainSolution():
     
   def segmentation(self):
     dist = ndi.distance_transform_edt(self.trsh1)
-    local_max = peak_local_max(dist, indices=False, min_distance=20, labels=self.trsh1)
+    local_max = peak_local_max(dist, min_distance=20, labels=self.trsh1)
     markers = ndi.label(local_max, structure=np.ones((3, 3)))[0]
-    labels = watershed(-dist, markers, mask=self.trsh1)
+    labels = watershed(-dist, markers, self.trsh1)
     for label in np.unique(labels):
       if label == 0:
         continue
@@ -62,6 +65,7 @@ root = Tk()
 ms = MainSolution()
 w, h = root.winfo_screenwidth(), root.winfo_screenheight()
 root.geometry(f"700x700")
+
 lbl_text1 = ttk.Label(text="Глобальная пороговая обработка")
 lbl_text1.place(x=250, y=10)
 img1 = ms.filt()
@@ -72,12 +76,14 @@ img2 = ms.global_threshold()
 lbl2 = ttk.Label(image=img2)
 lbl2.image = img2
 lbl2.place(x=370, y=40, width=300, height=300)
+
 lbl_text2 = ttk.Label(text="Адаптивная пороговая обработка")
 lbl_text2.place(x=90, y=360)
 img3 = ms.adaptive_threshold()
 lbl3 = ttk.Label(image=img3)
 lbl3.image = img3
 lbl3.place(x=30, y=390, width=300, height=300)
+
 lbl_text3 = ttk.Label(text="Сегментация")
 lbl_text3.place(x=480, y=360)
 img4 = ms.segmentation()

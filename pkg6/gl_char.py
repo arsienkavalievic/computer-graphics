@@ -68,7 +68,21 @@ edges = (
     (15, 19)
 )
 
+def draw_axes():
+    glBegin(GL_LINES)
+    glColor3f(1, 0, 0)  # X-axis (Red)
+    glVertex3f(0, 0, 0)
+    glVertex3f(1, 0, 0)
+    glColor3f(0, 1, 0)  # Y-axis (Green)
+    glVertex3f(0, 0, 0)
+    glVertex3f(0, 1, 0)
+    glColor3f(0, 0, 1)  # Z-axis (Blue)
+    glVertex3f(0, 0, 0)
+    glVertex3f(0, 0, 1)
+    glEnd()
+
 def K():
+    glColor3f(1, 1, 1)
     glBegin(GL_LINES)
     for edge in edges:
         for vertex in edge:
@@ -126,6 +140,7 @@ def main():
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         K()
+        draw_axes()
         pygame.display.flip()
         clock.tick(60)
 
